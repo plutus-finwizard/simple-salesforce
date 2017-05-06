@@ -49,7 +49,7 @@ class Salesforce(object):
             self, username=None, password=None, security_token=None,
             session_id=None, instance=None, instance_url=None,
             organizationId=None, sandbox=False, version=DEFAULT_API_VERSION,
-            proxies=None, session=None, client_id=None):
+            proxies=None, session=None, client_id=None, timeout=30):
         """Initialize the instance with the given parameters.
 
         Available kwargs
@@ -89,6 +89,7 @@ class Salesforce(object):
         self.sandbox = sandbox
         self.session = session or requests.Session()
         self.proxies = self.session.proxies
+        self.timeout = timeout
         # override custom session proxies dance
         if proxies is not None:
             if not session:
@@ -203,7 +204,7 @@ class Salesforce(object):
 
         return SFType(
             name, self.session_id, self.sf_instance, sf_version=self.sf_version,
-            proxies=self.proxies, session=self.session)
+            proxies=self.proxies, session=self.session, timeout=self.timeout)
 
     # User utility methods
     def set_password(self, user, password):
@@ -453,7 +454,7 @@ class SFType(object):
     # pylint: disable=too-many-arguments
     def __init__(
             self, object_name, session_id, sf_instance,
-            sf_version=DEFAULT_API_VERSION, proxies=None, session=None):
+            sf_version=DEFAULT_API_VERSION, proxies=None, session=None, timeout=30):
         """Initialize the instance with the given parameters.
 
         Arguments:
@@ -471,6 +472,7 @@ class SFType(object):
         self.session_id = session_id
         self.name = object_name
         self.session = session or requests.Session()
+        self.timeout = timeout
         # don't wipe out original proxies with None
         if not session and proxies is not None:
             self.session.proxies = proxies
@@ -705,7 +707,7 @@ class SFType(object):
         }
         additional_headers = kwargs.pop('headers', dict())
         headers.update(additional_headers or dict())
-        result = self.session.request(method, url, headers=headers, **kwargs)
+        result = self.session.request(method, url, headers=headers, timeout=self.timeout, **kwargs)
 
         if result.status_code >= 300:
             _exception_handler(result, self.name)
